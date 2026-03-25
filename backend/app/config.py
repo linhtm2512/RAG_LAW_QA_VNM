@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -17,7 +18,7 @@ class Settings(BaseSettings):
     embedding_dim: int = 768  # auto-detected at startup; overridden if needed
 
     # LLM
-    llm_provider: str = "glm"   # "gemini" | "openai" | "glm"
+    llm_provider: str = "glm"  # "gemini" | "openai" | "glm"
     gemini_api_key: str = ""
     openai_api_key: str = ""
     llm_model_gemini: str = "gemini-2.5-flash"
@@ -31,8 +32,8 @@ class Settings(BaseSettings):
     documents_path: str = "./documents"
 
     # Chunking
-    chunk_size: int = 400        # words per chunk
-    chunk_overlap: int = 50      # words overlap between chunks
+    chunk_size: int = 400  # words per chunk
+    chunk_overlap: int = 50  # words overlap between chunks
 
     # Retrieval
     top_k: int = 5

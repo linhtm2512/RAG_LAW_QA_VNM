@@ -14,7 +14,7 @@ Reads QA pairs from an Excel file with columns:
 import logging
 import re
 import unicodedata
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 import pandas as pd
 from rouge_score import rouge_scorer
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 # ─── Text normalisation ───────────────────────────────────────────────────────
+
 
 def _normalize(text: str) -> str:
     """Lowercase, strip diacritics for EM / token-F1 comparison."""
@@ -37,6 +38,7 @@ def _tokenize(text: str) -> List[str]:
 
 
 # ─── Metrics ──────────────────────────────────────────────────────────────────
+
 
 def exact_match(prediction: str, reference: str) -> float:
     return float(_normalize(prediction) == _normalize(reference))
@@ -77,6 +79,7 @@ def hallucination_score(prediction: str, reference: str) -> float:
 
 # ─── Batch evaluation ─────────────────────────────────────────────────────────
 
+
 def evaluate_single(prediction: str, reference: str) -> Dict[str, float]:
     return {
         "exact_match": exact_match(prediction, reference),
@@ -98,8 +101,15 @@ def load_qa_test_file(filepath: str) -> pd.DataFrame:
 
     # Map to standard names
     q_aliases = ["question", "câu_hỏi", "câu hỏi", "cau_hoi", "cau hoi"]
-    a_aliases = ["answer", "reference_answer", "câu_trả_lời", "câu trả lời",
-                 "cau_tra_loi", "cau tra loi", "expected_answer"]
+    a_aliases = [
+        "answer",
+        "reference_answer",
+        "câu_trả_lời",
+        "câu trả lời",
+        "cau_tra_loi",
+        "cau tra loi",
+        "expected_answer",
+    ]
 
     q_col = next((c for c in df.columns if c in q_aliases), None)
     a_col = next((c for c in df.columns if c in a_aliases), None)
@@ -113,7 +123,9 @@ def load_qa_test_file(filepath: str) -> pd.DataFrame:
 
 
 def evaluate_batch(
-    qa_pairs: List[Dict[str, str]],  # [{"question": ..., "reference": ..., "rag_answer": ..., "no_rag_answer": ...}]
+    qa_pairs: List[
+        Dict[str, str]
+    ],  # [{"question": ..., "reference": ..., "rag_answer": ..., "no_rag_answer": ...}]
 ) -> Dict[str, Any]:
     """
     Compute aggregate metrics for a batch of QA results.
@@ -140,14 +152,16 @@ def evaluate_batch(
         rag_m = evaluate_single(rag_ans, ref)
         no_rag_m = evaluate_single(no_rag_ans, ref)
 
-        per_question.append({
-            "question": q,
-            "reference": ref,
-            "rag_answer": rag_ans,
-            "no_rag_answer": no_rag_ans,
-            "rag_metrics": rag_m,
-            "no_rag_metrics": no_rag_m,
-        })
+        per_question.append(
+            {
+                "question": q,
+                "reference": ref,
+                "rag_answer": rag_ans,
+                "no_rag_answer": no_rag_ans,
+                "rag_metrics": rag_m,
+                "no_rag_metrics": no_rag_m,
+            }
+        )
         rag_metrics.append(rag_m)
         no_rag_metrics.append(no_rag_m)
 
