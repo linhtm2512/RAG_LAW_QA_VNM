@@ -32,9 +32,7 @@ class EmbeddingModel:
         self.model_name = model_name
         self._model = SentenceTransformer(model_name)
         self.dim: int = self._model.get_sentence_embedding_dimension()
-        logger.info(
-            "Embedding model loaded. Dimension: %d", self.dim
-        )
+        logger.info("Embedding model loaded. Dimension: %d", self.dim)
 
     # ------------------------------------------------------------------
     def encode(

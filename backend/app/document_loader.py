@@ -13,7 +13,7 @@ Strategy:
 import logging
 import re
 from pathlib import Path
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 import pdfplumber
 from docx import Document as DocxDocument
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 try:
     import pytesseract
     from pdf2image import convert_from_path
+
     _OCR_AVAILABLE = True
 except ImportError:
     _OCR_AVAILABLE = False
@@ -31,6 +32,7 @@ except ImportError:
 
 
 # ─── OCR helper ───────────────────────────────────────────────────────────────
+
 
 def _ocr_pdf(pdf_path: str) -> str:
     """Run Tesseract OCR (Vietnamese) on every page of a scanned PDF."""
@@ -46,11 +48,14 @@ def _ocr_pdf(pdf_path: str) -> str:
             texts.append(text)
         logger.debug("OCR page %d: %d chars", i + 1, len(text))
     full = "\n".join(texts)
-    logger.info("OCR complete: %d chars extracted from %s", len(full), Path(pdf_path).name)
+    logger.info(
+        "OCR complete: %d chars extracted from %s", len(full), Path(pdf_path).name
+    )
     return full
 
 
 # ─── Text extraction ──────────────────────────────────────────────────────────
+
 
 def extract_text_from_docx(docx_path: str) -> str:
     """Extract raw text from a Word .docx file using python-docx."""
@@ -103,7 +108,9 @@ def extract_text_from_pdf(pdf_path: str) -> str:
                 for table in tables:
                     rows = []
                     for row in table:
-                        cells = [str(c).strip().replace("\n", " ") if c else "" for c in row]
+                        cells = [
+                            str(c).strip().replace("\n", " ") if c else "" for c in row
+                        ]
                         non_empty = [c for c in cells if c]
                         if non_empty:
                             rows.append(" | ".join(cells))
@@ -121,7 +128,9 @@ def extract_text_from_pdf(pdf_path: str) -> str:
                 for table in tables:
                     rows = []
                     for row in table:
-                        cells = [str(c).strip().replace("\n", " ") if c else "" for c in row]
+                        cells = [
+                            str(c).strip().replace("\n", " ") if c else "" for c in row
+                        ]
                         non_empty = [c for c in cells if c]
                         if non_empty:
                             rows.append(" | ".join(cells))
@@ -134,7 +143,9 @@ def extract_text_from_pdf(pdf_path: str) -> str:
                     pages_text.append(page_text)
 
     if needs_ocr:
-        logger.info("%s appears to be a scanned PDF – switching to OCR.", Path(pdf_path).name)
+        logger.info(
+            "%s appears to be a scanned PDF – switching to OCR.", Path(pdf_path).name
+        )
         return _ocr_pdf(pdf_path)
 
     full_text = "\n".join(pages_text)
@@ -182,6 +193,7 @@ def clean_vietnamese_text(text: str) -> str:
 
 # ─── Chunking ─────────────────────────────────────────────────────────────────
 
+
 def chunk_text(
     text: str,
     chunk_size: int = 400,
@@ -218,6 +230,7 @@ def chunk_text(
 
 # ─── Folder loader ────────────────────────────────────────────────────────────
 
+
 def load_documents_from_folder(
     folder_path: str,
     chunk_size: int = 400,
@@ -243,9 +256,7 @@ def load_documents_from_folder(
     if not folder.exists():
         raise FileNotFoundError(f"Documents folder not found: {folder_path}")
 
-    doc_files = sorted(
-        list(folder.glob("*.pdf")) + list(folder.glob("*.docx"))
-    )
+    doc_files = sorted(list(folder.glob("*.pdf")) + list(folder.glob("*.docx")))
     if not doc_files:
         return [], []
 
@@ -262,7 +273,9 @@ def load_documents_from_folder(
             raw_text = extract_text_from_pdf(str(doc_file))
             # Detect OCR usage heuristic
             try:
-                first_page_text = pdfplumber.open(str(doc_file)).pages[0].extract_text() or ""
+                first_page_text = (
+                    pdfplumber.open(str(doc_file)).pages[0].extract_text() or ""
+                )
                 ocr_used = not bool(first_page_text.strip())
             except Exception:
                 ocr_used = False
@@ -291,4 +304,3 @@ def load_documents_from_folder(
             )
 
     return all_chunks, file_names
-

@@ -43,7 +43,10 @@ class VectorStore:
                 self.client.delete_collection(self.collection_name)
                 logger.info("Deleted existing collection '%s'", self.collection_name)
             else:
-                logger.info("Collection '%s' already exists – skipping creation.", self.collection_name)
+                logger.info(
+                    "Collection '%s' already exists – skipping creation.",
+                    self.collection_name,
+                )
                 return
 
         self.client.create_collection(
@@ -53,7 +56,11 @@ class VectorStore:
                 distance=qmodels.Distance.COSINE,
             ),
         )
-        logger.info("Created collection '%s' (dim=%d, cosine)", self.collection_name, self.vector_dim)
+        logger.info(
+            "Created collection '%s' (dim=%d, cosine)",
+            self.collection_name,
+            self.vector_dim,
+        )
 
     def delete_collection(self) -> None:
         if self.collection_exists():

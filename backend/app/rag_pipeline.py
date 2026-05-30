@@ -13,14 +13,12 @@ Also exposes a "no-RAG" path (pure LLM, no retrieval) for comparison.
 import logging
 import textwrap
 import time
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import google.generativeai as genai
 from openai import OpenAI
 
 from .config import Settings
-
-
 from .embeddings import EmbeddingModel
 from .vector_store import VectorStore
 
@@ -63,6 +61,7 @@ def _build_rag_prompt(question: str, context_chunks: List[Dict[str, Any]]) -> st
 
 # ─── LLM callers ──────────────────────────────────────────────────────────────
 
+
 def _call_gemini(
     system_prompt: str,
     user_prompt: str,
@@ -80,13 +79,23 @@ def _call_gemini(
             response = model.generate_content(user_prompt)
             return response.text.strip()
         except Exception as e:
-            if "429" in str(e) or "quota" in str(e).lower() or "RESOURCE_EXHAUSTED" in str(e):
+            if (
+                "429" in str(e)
+                or "quota" in str(e).lower()
+                or "RESOURCE_EXHAUSTED" in str(e)
+            ):
                 wait = 30 * (attempt + 1)
-                logger.warning("Gemini rate limit hit (attempt %d/3). Waiting %ds…", attempt + 1, wait)
+                logger.warning(
+                    "Gemini rate limit hit (attempt %d/3). Waiting %ds…",
+                    attempt + 1,
+                    wait,
+                )
                 time.sleep(wait)
             else:
                 raise
-    raise RuntimeError("Gemini API rate limit exceeded after 3 retries. Vui lòng thử lại sau 1 phút.")
+    raise RuntimeError(
+        "Gemini API rate limit exceeded after 3 retries. Vui lòng thử lại sau 1 phút."
+    )
 
 
 def _call_openai(
@@ -114,26 +123,30 @@ def _call_openai(
 def _call_llm(system_prompt: str, user_prompt: str, settings: Settings) -> str:
     if settings.llm_provider == "openai":
         return _call_openai(
-            system_prompt, user_prompt,
+            system_prompt,
+            user_prompt,
             api_key=settings.openai_api_key,
             model_name=settings.llm_model_openai,
         )
     if settings.llm_provider == "glm":
         return _call_openai(
-            system_prompt, user_prompt,
+            system_prompt,
+            user_prompt,
             api_key=settings.glm_api_key,
             model_name=settings.llm_model_glm,
             base_url=settings.glm_base_url,
         )
     # default: gemini
     return _call_gemini(
-        system_prompt, user_prompt,
+        system_prompt,
+        user_prompt,
         api_key=settings.gemini_api_key,
         model_name=settings.llm_model_gemini,
     )
 
 
 # ─── RAG Pipeline class ───────────────────────────────────────────────────────
+
 
 class RAGPipeline:
     def __init__(
@@ -181,7 +194,7 @@ class RAGPipeline:
             return {
                 "question": question,
                 "answer": "Không tìm thấy tài liệu liên quan trong cơ sở dữ liệu. "
-                          "Vui lòng kiểm tra lại hoặc tải tài liệu vào hệ thống.",
+                "Vui lòng kiểm tra lại hoặc tải tài liệu vào hệ thống.",
                 "retrieved": [],
                 "mode": "rag",
             }

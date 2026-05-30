@@ -19,18 +19,18 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
+import numpy as np
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import numpy as np
 from tqdm import tqdm
 
 from .config import get_settings
 from .document_loader import load_documents_from_folder
 from .embeddings import get_embedding_model
-from .vector_store import VectorStore
+from .evaluator import evaluate_batch, load_qa_test_file
 from .rag_pipeline import RAGPipeline
-from .evaluator import load_qa_test_file, evaluate_batch
+from .vector_store import VectorStore
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(name)s  %(message)s")
 logger = logging.getLogger(__name__)
@@ -50,7 +50,9 @@ async def lifespan(app: FastAPI):
     logger.info("Loading embedding model: %s", settings.embedding_model)
     emb_model = get_embedding_model(settings.embedding_model)
 
-    logger.info("Connecting to Qdrant at %s:%d", settings.qdrant_host, settings.qdrant_port)
+    logger.info(
+        "Connecting to Qdrant at %s:%d", settings.qdrant_host, settings.qdrant_port
+    )
     _store = VectorStore(
         host=settings.qdrant_host,
         port=settings.qdrant_port,
@@ -87,6 +89,7 @@ app.add_middleware(
 
 # ─── Pydantic schemas ─────────────────────────────────────────────────────────
 
+
 class QueryRequest(BaseModel):
     question: str
     top_k: Optional[int] = None
@@ -94,10 +97,11 @@ class QueryRequest(BaseModel):
 
 
 class EvaluateRequest(BaseModel):
-    qa_test_path: Optional[str] = None   # defaults to QA_TEST.xlsx in documents parent
+    qa_test_path: Optional[str] = None  # defaults to QA_TEST.xlsx in documents parent
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
+
 
 @app.get("/health", tags=["System"])
 def health():
@@ -161,9 +165,13 @@ def ingest_documents(recreate: bool = False):
     )
 
     if not chunks:
-        raise HTTPException(status_code=404, detail="No PDF files found in documents folder.")
+        raise HTTPException(
+            status_code=404, detail="No PDF files found in documents folder."
+        )
 
-    logger.info("Loaded %d chunks from %d files. Encoding…", len(chunks), len(file_names))
+    logger.info(
+        "Loaded %d chunks from %d files. Encoding…", len(chunks), len(file_names)
+    )
 
     # Ensure collection exists
     _store.create_collection(recreate=recreate)
@@ -234,19 +242,22 @@ def evaluate(req: EvaluateRequest):
         docs_folder = Path(settings.documents_path)
         docs_parent = docs_folder.parent
         candidates = (
-            list(docs_folder.glob("QA_TEST*.xlsx")) +
-            list(docs_folder.glob("qa_test*.xlsx")) +
-            list(docs_parent.glob("QA_TEST*.xlsx")) +
-            list(docs_parent.glob("qa_test*.xlsx"))
+            list(docs_folder.glob("QA_TEST*.xlsx"))
+            + list(docs_folder.glob("qa_test*.xlsx"))
+            + list(docs_parent.glob("QA_TEST*.xlsx"))
+            + list(docs_parent.glob("qa_test*.xlsx"))
         )
         if not candidates:
-            raise HTTPException(status_code=404, detail="QA_TEST.xlsx not found. Provide qa_test_path.")
+            raise HTTPException(
+                status_code=404, detail="QA_TEST.xlsx not found. Provide qa_test_path."
+            )
         qa_path = str(candidates[0])
 
     logger.info("Loading QA test file: %s", qa_path)
     df = load_qa_test_file(qa_path)
 
     import time as _time
+
     results = []
     for i, (_, row) in enumerate(df.iterrows()):
         q = str(row["question"]).strip()
@@ -259,11 +270,13 @@ def evaluate(req: EvaluateRequest):
         _time.sleep(7)
         no_rag_res = _pipeline.answer_without_rag(q)
 
-        results.append({
-            "question": q,
-            "reference": ref,
-            "rag_answer": rag_res["answer"],
-            "no_rag_answer": no_rag_res["answer"],
-        })
+        results.append(
+            {
+                "question": q,
+                "reference": ref,
+                "rag_answer": rag_res["answer"],
+                "no_rag_answer": no_rag_res["answer"],
+            }
+        )
 
     return evaluate_batch(results)

@@ -22,13 +22,14 @@ Options:
 
 import argparse
 import logging
-import sys
 import os
+import sys
 
 # Allow running from project root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from app.config import get_settings
@@ -42,11 +43,11 @@ logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(description="Ingest documents into Qdrant")
-    parser.add_argument("--docs",     default=None, help="Documents folder")
+    parser.add_argument("--docs", default=None, help="Documents folder")
     parser.add_argument("--recreate", action="store_true", help="Recreate collection")
-    parser.add_argument("--model",    default=None, help="Embedding model name")
-    parser.add_argument("--host",     default=None, help="Qdrant host")
-    parser.add_argument("--port",     type=int, default=None, help="Qdrant port")
+    parser.add_argument("--model", default=None, help="Embedding model name")
+    parser.add_argument("--host", default=None, help="Qdrant host")
+    parser.add_argument("--port", type=int, default=None, help="Qdrant port")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -80,8 +81,7 @@ def main():
         sys.exit(1)
 
     logger.info(
-        "Loaded %d chunks from %d files: %s",
-        len(chunks), len(file_names), file_names
+        "Loaded %d chunks from %d files: %s", len(chunks), len(file_names), file_names
     )
 
     # 2. Load embedding model
